@@ -4,6 +4,7 @@ import './App.scss'
 import randomizer_styles from './randomizer.module.scss'
 import 'rxjs'
 import { Subject, observable, Observable } from 'rxjs'
+import classNames from 'classnames'
 
 const App: React.FC = () => {
   return (
@@ -13,9 +14,31 @@ const App: React.FC = () => {
   )
 }
 
+interface RandomizationProvider<T> {
+  pickObject(): T
+}
+
+interface NamePickResult {
+  id: string
+  name: string
+  prefix: string
+  suffix: string
+}
+
+class RandomNamePicker implements RandomizationProvider<NamePickResult> {
+  pickObject(): NamePickResult {
+    return {
+      id: '17370000',
+      name: 'Matt',
+      prefix: '',
+      suffix: '',
+    }
+  }
+}
+
 /// Ramp up time, in milliseconds
-const RandomizationRampUpTime = 1500
-const RandomizationRampDownTime = 12000
+const RandomizationRampUpTime = 1000
+const RandomizationRampDownTime = 6000
 
 function animationProgress(start: number, duration: number, now: number): number {
   return (now - start) / duration
@@ -25,7 +48,11 @@ function randomDigit(): number {
   return Math.floor(Math.random() * 10)
 }
 
-class RandomizationProvider extends Subject<RandomizerNumberState> {
+class ShuffleRenderer extends Subject<RandomizerNumberState> {
+  constructor(private provider: RandomizationProvider<NamePickResult>) {
+    super()
+  }
+
   doingShuffleRampUp: boolean = false
   doingShuffleRampDown: boolean = false
   doingShuffle: boolean = false
@@ -54,11 +81,11 @@ class RandomizationProvider extends Subject<RandomizerNumberState> {
   }
 
   calculateRampUpDigits(prog: number) {
-    return Math.ceil(Math.max(Math.min(prog ** 2, 1), 0) * this.totalDigits)
+    return Math.ceil(Math.max(Math.min(prog ** 1.5, 1), 0) * this.totalDigits)
   }
 
   calculateRampDownDigits(prog: number) {
-    return Math.ceil((1 - Math.max(Math.min((1 - prog) ** 6, 1), 0)) * this.totalDigits)
+    return Math.floor((1 - Math.max(Math.min((1 - prog) ** 1.3, 1), 0)) * this.totalDigits)
   }
 
   doShuffleRampUp(time: number) {
@@ -90,10 +117,11 @@ class RandomizationProvider extends Subject<RandomizerNumberState> {
     })
 
     if (this.shouldEndShuffle) {
-      this.selectedNumber = '12434556'
+      this.selectedNumber = this.provider.pickObject().id
       this.animationStart = 0
       this.doingShuffle = false
       this.doingShuffleRampDown = true
+      this.shouldEndShuffle = false
       requestAnimationFrame(this.doShuffleRampDown.bind(this))
     } else {
       requestAnimationFrame(this.doShuffleRun.bind(this))
@@ -150,7 +178,7 @@ interface RandomizerProp {
 }
 
 interface RandomizerState {
-  provider: RandomizationProvider
+  provider: ShuffleRenderer
   number: RandomizerNumberState
   past: Array<RandomizerNumberState>
   observe?: Observable<RandomizerNumberState>
@@ -177,7 +205,7 @@ class RandomizerComponent extends React.Component<RandomizerProp, RandomizerStat
   constructor(p: RandomizerProp, ctx: any) {
     super(p, ctx)
 
-    let provider = new RandomizationProvider()
+    let provider = new ShuffleRenderer(new RandomNamePicker())
     this.state = {
       provider: provider,
       number: _emptyRandomizerState,
@@ -189,8 +217,6 @@ class RandomizerComponent extends React.Component<RandomizerProp, RandomizerStat
     })
   }
 
-  componentWillMount() {}
-
   click = () => {
     if (!this.state.provider.doingShuffleRampUp && !this.state.provider.doingShuffle) {
       this.state.provider.startShuffle()
@@ -201,7 +227,15 @@ class RandomizerComponent extends React.Component<RandomizerProp, RandomizerStat
 
   render() {
     return (
-      <div onClick={this.click} className={randomizer_styles['randomizer-display']}>
+      <div
+        onClick={this.click}
+        className={classNames([
+          randomizer_styles['randomizer-display'],
+          {
+            [`${randomizer_styles['highlight']}`]: this.state.number.shuffleEnds,
+          },
+        ])}
+      >
         {this.state.number.num}
       </div>
     )
