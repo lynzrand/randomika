@@ -14,7 +14,7 @@ const App: React.FC = () => {
 }
 
 /// Ramp up time, in milliseconds
-const RandomizationRampUpTime = 3000
+const RandomizationRampUpTime = 1500
 const RandomizationRampDownTime = 6000
 
 function animationProgress(start: number, duration: number, now: number): number {
@@ -34,7 +34,7 @@ class RandomizationProvider extends Subject<RandomizerNumberState> {
   animationStart: number = 0
   currentAnimation?: number
 
-  selectedNumber?: string
+  selectedNumber: string = '00000000'
 
   get selected() {
     return this.selectedNumber ? this.selectedNumber : '0'.repeat(this.totalDigits)
@@ -44,24 +44,25 @@ class RandomizationProvider extends Subject<RandomizerNumberState> {
 
   startShuffle() {
     this.animationStart = 0
+    this.doingShuffleRampUp = true
     this.currentAnimation = requestAnimationFrame(this.doShuffleRampUp.bind(this))
   }
 
   stopShuffle() {
+    this.doingShuffleRampUp = false
     this.shouldEndShuffle = true
   }
 
   calculateRampUpDigits(prog: number) {
-    return Math.max(Math.min(prog ** 4, 1), 0) * this.totalDigits
+    return Math.ceil(Math.max(Math.min(prog ** 2, 1), 0) * this.totalDigits)
   }
 
   calculateRampDownDigits(prog: number) {
-    return Math.max(Math.min((1 - prog) ** 4, 1), 0) * this.totalDigits
+    return Math.ceil((1 - Math.max(Math.min((1 - prog) ** 4, 1), 0)) * this.totalDigits)
   }
 
   doShuffleRampUp(time: number) {
     if (!this.animationStart) this.animationStart = time
-
     const progress = animationProgress(this.animationStart, RandomizationRampUpTime, time)
 
     this.next({
@@ -74,6 +75,8 @@ class RandomizationProvider extends Subject<RandomizerNumberState> {
     if (progress < 1) {
       requestAnimationFrame(this.doShuffleRampUp.bind(this))
     } else {
+      this.doingShuffleRampUp = false
+      this.doingShuffle = true
       requestAnimationFrame(this.doShuffleRun.bind(this))
     }
   }
@@ -87,10 +90,12 @@ class RandomizationProvider extends Subject<RandomizerNumberState> {
     })
 
     if (this.shouldEndShuffle) {
-      requestAnimationFrame(this.doShuffleRampDown.bind(this))
-    } else {
       this.selectedNumber = '12434556'
       this.animationStart = 0
+      this.doingShuffle = false
+      this.doingShuffleRampDown = true
+      requestAnimationFrame(this.doShuffleRampDown.bind(this))
+    } else {
       requestAnimationFrame(this.doShuffleRun.bind(this))
     }
   }
@@ -110,6 +115,7 @@ class RandomizationProvider extends Subject<RandomizerNumberState> {
     if (progress < 1) {
       requestAnimationFrame(this.doShuffleRampDown.bind(this))
     } else {
+      this.doingShuffleRampDown = false
       requestAnimationFrame(this.doFinalize.bind(this))
     }
   }
@@ -118,7 +124,7 @@ class RandomizationProvider extends Subject<RandomizerNumberState> {
     this.doingShuffle = false
     this.doingShuffleRampDown = false
     this.next({
-      num: this.generateShuffle(this.totalDigits, this.totalDigits),
+      num: this.generateShuffle(0, this.totalDigits),
       name: '',
       suffix: '',
       shuffleEnds: true,
@@ -129,7 +135,7 @@ class RandomizationProvider extends Subject<RandomizerNumberState> {
   generateShuffle(selectedStart: number, selectedEnd: number): string {
     let buf = ''
 
-    for (let i = 0; i < selectedStart - 1; i++) buf += randomDigit().toString()
+    for (let i = 0; i < selectedStart; i++) buf += randomDigit().toString()
 
     buf += this.selected.substr(selectedStart, selectedEnd)
 
@@ -159,7 +165,7 @@ interface RandomizerNumberState {
 
 const _emptyRandomizerState: RandomizerNumberState = {
   name: '',
-  num: '0000000',
+  num: '00000000',
   suffix: '',
   shuffleEnds: true,
 }
@@ -186,7 +192,7 @@ class RandomizerComponent extends React.Component<RandomizerProp, RandomizerStat
   componentWillMount() {}
 
   click = () => {
-    if (!this.state.provider.doingShuffleRampUp) {
+    if (!this.state.provider.doingShuffleRampUp && !this.state.provider.doingShuffle) {
       this.state.provider.startShuffle()
     } else {
       this.state.provider.stopShuffle()
@@ -194,7 +200,11 @@ class RandomizerComponent extends React.Component<RandomizerProp, RandomizerStat
   }
 
   render() {
-    return <div onClick={this.click}>{this.state.number.num}</div>
+    return (
+      <div onClick={this.click} className={randomizer_styles['randomizer-display']}>
+        {this.state.number.num}
+      </div>
+    )
   }
 }
 
