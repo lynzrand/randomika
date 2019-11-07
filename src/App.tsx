@@ -15,7 +15,7 @@ const App: React.FC = () => {
 
 /// Ramp up time, in milliseconds
 const RandomizationRampUpTime = 1500
-const RandomizationRampDownTime = 6000
+const RandomizationRampDownTime = 12000
 
 function animationProgress(start: number, duration: number, now: number): number {
   return (now - start) / duration
@@ -58,7 +58,7 @@ class RandomizationProvider extends Subject<RandomizerNumberState> {
   }
 
   calculateRampDownDigits(prog: number) {
-    return Math.ceil((1 - Math.max(Math.min((1 - prog) ** 4, 1), 0)) * this.totalDigits)
+    return Math.ceil((1 - Math.max(Math.min((1 - prog) ** 6, 1), 0)) * this.totalDigits)
   }
 
   doShuffleRampUp(time: number) {
