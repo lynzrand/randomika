@@ -1,26 +1,201 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { Context } from 'react'
+import logo from './logo.svg'
+import './App.scss'
+import randomizer_styles from './randomizer.module.scss'
+import 'rxjs'
+import { Subject, observable, Observable } from 'rxjs'
 
 const App: React.FC = () => {
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <RandomizerComponent ready={false}></RandomizerComponent>
     </div>
-  );
+  )
 }
 
-export default App;
+/// Ramp up time, in milliseconds
+const RandomizationRampUpTime = 3000
+const RandomizationRampDownTime = 6000
+
+function animationProgress(start: number, duration: number, now: number): number {
+  return (now - start) / duration
+}
+
+function randomDigit(): number {
+  return Math.floor(Math.random() * 10)
+}
+
+class RandomizationProvider extends Subject<RandomizerNumberState> {
+  doingShuffleRampUp: boolean = false
+  doingShuffleRampDown: boolean = false
+  doingShuffle: boolean = false
+
+  shouldEndShuffle: boolean = false
+  animationStart: number = 0
+  currentAnimation?: number
+
+  selectedNumber?: string
+
+  get selected() {
+    return this.selectedNumber ? this.selectedNumber : '0'.repeat(this.totalDigits)
+  }
+
+  readonly totalDigits = 8
+
+  startShuffle() {
+    this.animationStart = 0
+    this.currentAnimation = requestAnimationFrame(this.doShuffleRampUp.bind(this))
+  }
+
+  stopShuffle() {
+    this.shouldEndShuffle = true
+  }
+
+  calculateRampUpDigits(prog: number) {
+    return Math.max(Math.min(prog ** 4, 1), 0) * this.totalDigits
+  }
+
+  calculateRampDownDigits(prog: number) {
+    return Math.max(Math.min((1 - prog) ** 4, 1), 0) * this.totalDigits
+  }
+
+  doShuffleRampUp(time: number) {
+    if (!this.animationStart) this.animationStart = time
+
+    const progress = animationProgress(this.animationStart, RandomizationRampUpTime, time)
+
+    this.next({
+      num: this.generateShuffle(this.calculateRampUpDigits(progress), this.totalDigits),
+      name: '',
+      suffix: '',
+      shuffleEnds: false,
+    })
+
+    if (progress < 1) {
+      requestAnimationFrame(this.doShuffleRampUp.bind(this))
+    } else {
+      requestAnimationFrame(this.doShuffleRun.bind(this))
+    }
+  }
+
+  doShuffleRun(time: number) {
+    this.next({
+      num: this.generateShuffle(0, 0),
+      name: '',
+      suffix: '',
+      shuffleEnds: false,
+    })
+
+    if (this.shouldEndShuffle) {
+      requestAnimationFrame(this.doShuffleRampDown.bind(this))
+    } else {
+      this.selectedNumber = '12434556'
+      this.animationStart = 0
+      requestAnimationFrame(this.doShuffleRun.bind(this))
+    }
+  }
+
+  doShuffleRampDown(time: number) {
+    if (!this.animationStart) this.animationStart = time
+
+    const progress = animationProgress(this.animationStart, RandomizationRampDownTime, time)
+
+    this.next({
+      num: this.generateShuffle(0, this.calculateRampDownDigits(progress)),
+      name: '',
+      suffix: '',
+      shuffleEnds: false,
+    })
+
+    if (progress < 1) {
+      requestAnimationFrame(this.doShuffleRampDown.bind(this))
+    } else {
+      requestAnimationFrame(this.doFinalize.bind(this))
+    }
+  }
+
+  doFinalize() {
+    this.doingShuffle = false
+    this.doingShuffleRampDown = false
+    this.next({
+      num: this.generateShuffle(this.totalDigits, this.totalDigits),
+      name: '',
+      suffix: '',
+      shuffleEnds: true,
+    })
+    // this.complete()
+  }
+
+  generateShuffle(selectedStart: number, selectedEnd: number): string {
+    let buf = ''
+
+    for (let i = 0; i < selectedStart - 1; i++) buf += randomDigit().toString()
+
+    buf += this.selected.substr(selectedStart, selectedEnd)
+
+    for (let i = selectedEnd; i < this.totalDigits; i++) buf += randomDigit().toString()
+
+    return buf
+  }
+}
+
+interface RandomizerProp {
+  ready: boolean
+}
+
+interface RandomizerState {
+  provider: RandomizationProvider
+  number: RandomizerNumberState
+  past: Array<RandomizerNumberState>
+  observe?: Observable<RandomizerNumberState>
+}
+
+interface RandomizerNumberState {
+  num: string
+  suffix: string
+  name: string
+  shuffleEnds: boolean
+}
+
+const _emptyRandomizerState: RandomizerNumberState = {
+  name: '',
+  num: '0000000',
+  suffix: '',
+  shuffleEnds: true,
+}
+
+class RandomizerComponent extends React.Component<RandomizerProp, RandomizerState> {
+  /**
+   *
+   */
+  constructor(p: RandomizerProp, ctx: any) {
+    super(p, ctx)
+
+    let provider = new RandomizationProvider()
+    this.state = {
+      provider: provider,
+      number: _emptyRandomizerState,
+      past: [],
+    }
+
+    provider.subscribe({
+      next: x => this.setState({ number: x }),
+    })
+  }
+
+  componentWillMount() {}
+
+  click = () => {
+    if (!this.state.provider.doingShuffleRampUp) {
+      this.state.provider.startShuffle()
+    } else {
+      this.state.provider.stopShuffle()
+    }
+  }
+
+  render() {
+    return <div onClick={this.click}>{this.state.number.num}</div>
+  }
+}
+
+export default App
