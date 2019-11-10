@@ -6,7 +6,12 @@ import 'rxjs'
 import { Subject, observable, Observable } from 'rxjs'
 import classNames from 'classnames'
 import './randomizer'
-import { ShuffleRenderer, RandomizerNumberState, RandomNamePicker } from './randomizer'
+import {
+  ShuffleRenderer,
+  RandomizerNumberState,
+  RandomNamePicker,
+  _emptyRandomizerState,
+} from './randomizer'
 
 const App: React.FC = () => {
   return (
@@ -25,13 +30,6 @@ interface RandomizerState {
   number: RandomizerNumberState
   past: Array<RandomizerNumberState>
   observe?: Observable<RandomizerNumberState>
-}
-
-const _emptyRandomizerState: RandomizerNumberState = {
-  name: '',
-  num: '00000000',
-  suffix: '',
-  shuffleEnds: true,
 }
 
 class RandomizerComponent extends React.Component<RandomizerProp, RandomizerState> {

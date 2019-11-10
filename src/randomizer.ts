@@ -42,6 +42,13 @@ export interface RandomizerNumberState {
   shuffleEnds: boolean
 }
 
+export const _emptyRandomizerState: RandomizerNumberState = {
+  name: '',
+  num: '00000000',
+  suffix: '',
+  shuffleEnds: true,
+}
+
 export class ShuffleRenderer extends Subject<RandomizerNumberState> {
   constructor(private provider: RandomizationProvider<NamePickResult>) {
     super()
@@ -55,10 +62,20 @@ export class ShuffleRenderer extends Subject<RandomizerNumberState> {
   animationStart: number = 0
   currentAnimation?: number
 
-  selectedNumber: string = '00000000'
+  //   selectedNumber: string = '00000000'
+  selectedNumber: RandomizerNumberState = _emptyRandomizerState
 
   get selected() {
-    return this.selectedNumber ? this.selectedNumber : '0'.repeat(this.totalDigits)
+    return this.selectedNumber.num ? this.selectedNumber.num : '0'.repeat(this.totalDigits)
+  }
+
+  setSelected(input: NamePickResult) {
+    this.selectedNumber = {
+      num: input.id,
+      suffix: input.suffix,
+      name: input.name,
+      shuffleEnds: true,
+    }
   }
 
   readonly totalDigits = 8
@@ -111,7 +128,8 @@ export class ShuffleRenderer extends Subject<RandomizerNumberState> {
     })
 
     if (this.shouldEndShuffle) {
-      this.selectedNumber = this.provider.pickObject().id
+      //   this.selectedNumber = this.provider.pickObject()
+      this.setSelected(this.provider.pickObject())
       this.animationStart = 0
       this.doingShuffle = false
       this.doingShuffleRampDown = true
@@ -145,12 +163,7 @@ export class ShuffleRenderer extends Subject<RandomizerNumberState> {
   doFinalize() {
     this.doingShuffle = false
     this.doingShuffleRampDown = false
-    this.next({
-      num: this.generateShuffle(0, this.totalDigits),
-      name: '',
-      suffix: '',
-      shuffleEnds: true,
-    })
+    this.next(this.selectedNumber)
     // this.complete()
   }
 
