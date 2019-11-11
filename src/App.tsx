@@ -14,6 +14,7 @@ import {
   _emptyRandomizerState,
 } from './randomizer'
 import { filter } from 'rxjs/operators'
+import { clone } from '@babel/types'
 
 const App: React.FC = () => {
   return (
@@ -60,9 +61,28 @@ class RandomizerComponent extends React.Component<RandomizerProp, RandomizerStat
           switch (ev.key) {
             case ' ':
               this.click()
+              break
+            case 'ArrowUp':
+              this.arrowUp()
+              break
+            case 'ArrowDown':
+              this.arrowDown()
+              break
           }
         },
       })
+  }
+
+  arrowUp = () => {
+    this.setState(prev => {
+      let past = prev.past
+      past.push(prev.number)
+      return { past: past }
+    })
+  }
+
+  arrowDown = () => {
+    this.setState({ past: [] })
   }
 
   click = () => {
@@ -76,6 +96,14 @@ class RandomizerComponent extends React.Component<RandomizerProp, RandomizerStat
   render() {
     return (
       <div className={randomizer_styles['randomizer-wrapper']}>
+        <div className={randomizer_styles['randomizer-past-wrapper']}>
+          {this.state.past.map(it => (
+            <div className={randomizer_styles['randomizer-past']}>
+              {it.prefix}
+              {it.num} {it.name}
+            </div>
+          ))}
+        </div>
         <div
           onClick={this.click}
           className={classNames([

@@ -1,3 +1,9 @@
+.randomizer-past {
+  font-size: 6vh;
+  font-weight: bold;
+
+  transition: color 700ms cubic-bezier(0.19, 1, 0.22, 1);
+}
 .randomizer-display {
   font-size: 15vh;
   font-weight: bold;
