@@ -12,13 +12,35 @@ export interface NamePickResult {
   suffix: string
 }
 
+/**
+ * A mock-up picker. Returns a result of a random-generated id number
+ */
 export class DefaultPicker extends Subject<NamePickResult>
   implements RandomizationProvider<NamePickResult> {
+  namePoolFamily =
+    '王李张刘陈杨黄赵吴周徐孙马朱胡郭何高林郑谢罗梁宋唐许韩冯邓曹彭曾萧田董袁潘于蒋蔡余杜叶程苏魏吕丁任沈姚卢姜崔钟谭陆汪范金石廖贾夏韦付方白邹孟熊秦邱江尹薛闫段雷侯龙史陶黎贺顾毛郝龚邵万钱严覃武戴莫孔向汤'
+
+  namePoolGiven = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
   requestNewObject() {
+    let isY = Math.random() < 0.2
+
+    let id =
+      '1737' +
+      Math.floor(Math.random() * 10000).toLocaleString(undefined, {
+        minimumIntegerDigits: 4,
+        useGrouping: false,
+      })
+    // (isY ? 'Y' : '')
+
+    let name =
+      this.namePoolFamily.charAt(Math.floor(this.namePoolFamily.length * Math.random())) +
+      this.namePoolGiven.charAt(Math.floor(this.namePoolGiven.length * Math.random())).repeat(2)
+
     this.next({
-      id: '17370000',
-      name: 'Matt',
-      prefix: '',
+      id: id,
+      name: name,
+      prefix: isY ? 'SY' : '',
       suffix: '',
     })
   }
@@ -26,6 +48,7 @@ export class DefaultPicker extends Subject<NamePickResult>
 
 /// Ramp up time, in milliseconds
 const RandomizationRampUpTime = 1000
+/// Ramp down time, in milliseconds
 const RandomizationRampDownTime = 6000
 
 function animationProgress(start: number, duration: number, now: number): number {
@@ -39,6 +62,7 @@ function randomDigit(): number {
 export interface RandomizerNumberState {
   num: string
   suffix: string
+  prefix: string
   name: string
   shuffleEnds: boolean
 }
@@ -47,9 +71,13 @@ export const _emptyRandomizerState: RandomizerNumberState = {
   name: '',
   num: '00000000',
   suffix: '',
+  prefix: '',
   shuffleEnds: true,
 }
 
+/**
+ * A
+ */
 export class ShuffleRenderer extends Subject<RandomizerNumberState> {
   constructor(private provider: RandomizationProvider<NamePickResult>) {
     super()
@@ -79,6 +107,7 @@ export class ShuffleRenderer extends Subject<RandomizerNumberState> {
   setSelected(input: NamePickResult) {
     this.selectedNumber = {
       num: input.id,
+      prefix: input.prefix,
       suffix: input.suffix,
       name: input.name,
       shuffleEnds: true,
@@ -113,6 +142,7 @@ export class ShuffleRenderer extends Subject<RandomizerNumberState> {
     this.next({
       num: this.generateShuffle(this.calculateRampUpDigits(progress), this.totalDigits),
       name: '',
+      prefix: '',
       suffix: '',
       shuffleEnds: false,
     })
@@ -131,6 +161,7 @@ export class ShuffleRenderer extends Subject<RandomizerNumberState> {
       num: this.generateShuffle(0, 0),
       name: '',
       suffix: '',
+      prefix: '',
       shuffleEnds: false,
     })
 
@@ -154,6 +185,7 @@ export class ShuffleRenderer extends Subject<RandomizerNumberState> {
       num: this.generateShuffle(0, this.calculateRampDownDigits(progress)),
       name: '',
       suffix: '',
+      prefix: '',
       shuffleEnds: false,
     })
 

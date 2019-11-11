@@ -5,10 +5,11 @@ body {
   display: flex;
   min-height: 100vh;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   justify-content: flex-end;
   margin: 0;
-  font-family: 'IBM Plex Sans';
+  font-family: 'IBM Plex Sans', 'Noto Sans SC';
+  line-height: 1.1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 

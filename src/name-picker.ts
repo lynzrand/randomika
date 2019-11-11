@@ -1,5 +1,3 @@
-import 'axios-observable'
-
 import { RandomizerNumberState, RandomizationProvider } from './randomizer'
 import { Subject } from 'rxjs'
 import Axios from 'axios-observable'

@@ -3,7 +3,8 @@ import logo from './logo.svg'
 import './App.scss'
 import randomizer_styles from './randomizer.module.scss'
 import 'rxjs'
-import { Subject, observable, Observable } from 'rxjs'
+import 'rxjs/operators'
+import { Subject, observable, Observable, fromEvent, pipe } from 'rxjs'
 import classNames from 'classnames'
 import './randomizer'
 import {
@@ -12,6 +13,7 @@ import {
   DefaultPicker,
   _emptyRandomizerState,
 } from './randomizer'
+import { filter } from 'rxjs/operators'
 
 const App: React.FC = () => {
   return (
@@ -49,6 +51,18 @@ class RandomizerComponent extends React.Component<RandomizerProp, RandomizerStat
     provider.subscribe({
       next: x => this.setState({ number: x }),
     })
+
+    fromEvent<KeyboardEvent>(document, 'keydown')
+      .pipe()
+      .subscribe({
+        next: ev => {
+          console.log(ev)
+          switch (ev.key) {
+            case ' ':
+              this.click()
+          }
+        },
+      })
   }
 
   click = () => {
@@ -61,16 +75,30 @@ class RandomizerComponent extends React.Component<RandomizerProp, RandomizerStat
 
   render() {
     return (
-      <div
-        onClick={this.click}
-        className={classNames([
-          randomizer_styles['randomizer-display'],
-          {
-            [`${randomizer_styles['highlight']}`]: this.state.number.shuffleEnds,
-          },
-        ])}
-      >
-        {this.state.number.num}
+      <div className={randomizer_styles['randomizer-wrapper']}>
+        <div
+          onClick={this.click}
+          className={classNames([
+            randomizer_styles['randomizer-display'],
+            {
+              [`${randomizer_styles['highlight']}`]: this.state.number.shuffleEnds,
+            },
+          ])}
+        >
+          {this.state.number.prefix}
+          {this.state.number.num}
+        </div>
+        <div
+          onClick={this.click}
+          className={classNames([
+            randomizer_styles['randomizer-display'],
+            {
+              [`${randomizer_styles['highlight']}`]: this.state.number.shuffleEnds,
+            },
+          ])}
+        >
+          {this.state.number.name || <br></br>}
+        </div>
       </div>
     )
   }
