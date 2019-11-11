@@ -9,7 +9,7 @@ import './randomizer'
 import {
   ShuffleRenderer,
   RandomizerNumberState,
-  RandomNamePicker,
+  DefaultPicker,
   _emptyRandomizerState,
 } from './randomizer'
 
@@ -39,7 +39,7 @@ class RandomizerComponent extends React.Component<RandomizerProp, RandomizerStat
   constructor(p: RandomizerProp, ctx: any) {
     super(p, ctx)
 
-    let provider = new ShuffleRenderer(new RandomNamePicker())
+    let provider = new ShuffleRenderer(new DefaultPicker())
     this.state = {
       provider: provider,
       number: _emptyRandomizerState,

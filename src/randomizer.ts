@@ -1,8 +1,8 @@
 import 'rxjs'
 import { Subject } from 'rxjs'
 
-export interface RandomizationProvider<T> {
-  pickObject(): T
+export interface RandomizationProvider<T> extends Subject<T> {
+  requestNewObject(): void
 }
 
 export interface NamePickResult {
@@ -12,14 +12,15 @@ export interface NamePickResult {
   suffix: string
 }
 
-export class RandomNamePicker implements RandomizationProvider<NamePickResult> {
-  pickObject(): NamePickResult {
-    return {
+export class DefaultPicker extends Subject<NamePickResult>
+  implements RandomizationProvider<NamePickResult> {
+  requestNewObject() {
+    this.next({
       id: '17370000',
       name: 'Matt',
       prefix: '',
       suffix: '',
-    }
+    })
   }
 }
 
@@ -52,6 +53,12 @@ export const _emptyRandomizerState: RandomizerNumberState = {
 export class ShuffleRenderer extends Subject<RandomizerNumberState> {
   constructor(private provider: RandomizationProvider<NamePickResult>) {
     super()
+    this.provider.subscribe({
+      next: data => {
+        this.shouldEndShuffle = true
+        this.setSelected(data)
+      },
+    })
   }
 
   doingShuffleRampUp: boolean = false
@@ -88,7 +95,7 @@ export class ShuffleRenderer extends Subject<RandomizerNumberState> {
 
   stopShuffle() {
     this.doingShuffleRampUp = false
-    this.shouldEndShuffle = true
+    this.provider.requestNewObject()
   }
 
   calculateRampUpDigits(prog: number) {
@@ -128,8 +135,6 @@ export class ShuffleRenderer extends Subject<RandomizerNumberState> {
     })
 
     if (this.shouldEndShuffle) {
-      //   this.selectedNumber = this.provider.pickObject()
-      this.setSelected(this.provider.pickObject())
       this.animationStart = 0
       this.doingShuffle = false
       this.doingShuffleRampDown = true
